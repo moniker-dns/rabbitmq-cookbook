@@ -30,6 +30,13 @@ when "debian"
     # use the RabbitMQ repository instead of Ubuntu or Debian's
     # because there are very useful features in the newer versions
 
+    # For other recipes to call to force an update
+    execute "apt-get update" do
+      command "apt-get update"
+      ignore_failure true
+      action :nothing
+    end
+
     apt_repository "rabbitmq" do
       uri "http://www.rabbitmq.com/debian/"
       distribution "testing"
@@ -37,10 +44,26 @@ when "debian"
       key "http://www.rabbitmq.com/rabbitmq-signing-key-public.asc"
       not_if { node['rabbitmq']['use_distro_version'] }
       action :add
+      # refresh the repo metadata
+      notifies :run, resources(:execute => "apt-get update"), :immediately
+    end
+
+    # make sure the service gets stopped after the package install 
+    # (but only on the package install)
+    execute "clean-up-on-package-install" do
+      action :nothing     # only run when being notified
+      command "setsid /etc/init.d/rabbitmq-server stop ; rm -rf /var/lib/rabbitmq/mnesia ; touch /var/lib/rabbitmq/already-cleaned-up"
+      ignore_failure true
+      only_if do
+        ::File.exists?('/var/lib/rabbitmq/mnesia') &&
+        ! ::File.exists?('/var/lib/rabbitmq/already-cleaned-up')
+      end
     end
 
     # NOTE: The official RabbitMQ apt repository has only the latest version
-    package "rabbitmq-server"
+    package "rabbitmq-server" do
+      notifies :run, resources(:execute => "clean-up-on-package-install"), :immediately
+    end
 
   else
 
@@ -95,11 +118,23 @@ template "#{node['rabbitmq']['config_root']}/rabbitmq-env.conf" do
   notifies :restart, "service[#{node['rabbitmq']['service_name']}]"
 end
 
+#
+# build the list of cluster members
+cluster_members = search("node", "role:#{node['rabbitmq']['cluster_role_name']} AND chef_environment:#{node.chef_environment}") || []
+
+# reduce the array of objects down to an array of node names, 'cos that's all we need
+cluster_members.map! do |member|
+  member['hostname']
+end
+# add us, as we may not exist yet, the uniq in the template will remove duplicates
+cluster_members << node['hostname']
+
 template "#{node['rabbitmq']['config_root']}/rabbitmq.config" do
   source "rabbitmq.config.erb"
   owner "root"
   group "root"
   mode 00644
+  variables(:cluster_members => cluster_members.uniq)
   notifies :restart, "service[#{node['rabbitmq']['service_name']}]"
 end
 

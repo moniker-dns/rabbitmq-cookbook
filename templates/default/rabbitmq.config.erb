@@ -4,8 +4,10 @@
 
 [
   {rabbit, [
-<% if node['rabbitmq']['cluster'] && node['rabbitmq']['cluster_disk_nodes'] -%>
+<% if node['rabbitmq']['cluster'] && (node['rabbitmq']['cluster_disk_nodes'].length > 0) -%>
     {cluster_nodes, [<%= node['rabbitmq']['cluster_disk_nodes'].map{|n| "\'#{n}\'"}.join(',') %>]},
+<% elsif node['rabbitmq']['cluster'] && (node['rabbitmq']['cluster_disk_nodes'].length == 0) -%>
+  {cluster_nodes, {[<%= @cluster_members.map{|n| "\'rabbit@#{n}\'"}.join(',') %>], <%= node['rabbitmq']['ram_or_disc']%>}},
 <% end %>
 <% if node['rabbitmq']['ssl'] -%>
     {ssl_listeners, [<%= node['rabbitmq']['ssl_port'] %>]},
@@ -23,5 +25,9 @@
 <% end %>
     {default_user, <<"<%= node['rabbitmq']['default_user'] %>">>},
     {default_pass, <<"<%= node['rabbitmq']['default_pass'] %>">>}
+  ]},
+  {kernel, [
+    {inet_dist_listen_min, <%= node['rabbitmq']['inet_dist_listen_min'] %>},
+    {inet_dist_listen_max, <%= node['rabbitmq']['inet_dist_listen_max'] %>}
   ]}
 ].

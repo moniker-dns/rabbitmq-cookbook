@@ -31,7 +31,11 @@ default['rabbitmq']['default_pass'] = 'guest'
 #clustering
 default['rabbitmq']['cluster'] = false
 default['rabbitmq']['cluster_disk_nodes'] = []
+default['rabbitmq']['cluster_role_name'] = 'rabbitmq'
+default['rabbitmq']['ram_or_disc'] = 'disc'
 default['rabbitmq']['erlang_cookie'] = 'AnyAlphaNumericStringWillDo'
+default['rabbitmq']['inet_dist_listen_min'] = 9100
+default['rabbitmq']['inet_dist_listen_max'] = 9200
 
 # resource usage
 default['rabbitmq']['disk_free_limit_relative'] = nil
