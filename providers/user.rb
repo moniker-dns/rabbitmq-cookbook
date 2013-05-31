@@ -18,7 +18,7 @@
 #
 
 def user_exists?(name)
-  cmdStr = "rabbitmqctl -q list_users |grep '^#{name}\\b'"
+  cmdStr = "rabbitmqctl -q list_users |grep '^#{name}\\s'"
   cmd = Mixlib::ShellOut.new(cmdStr)
   cmd.environment['HOME'] = ENV.fetch('HOME', '/root')
   cmd.run_command
@@ -34,7 +34,7 @@ end
 
 def user_has_tag?(name, tag)
   tag = '"\[\]"' if tag.nil?
-  cmdStr = "rabbitmqctl -q list_users | grep \"^#{name}\\b\" | grep #{tag}"
+  cmdStr = "rabbitmqctl -q list_users | grep \"^#{name}\\s\" | grep #{tag}"
   cmd = Mixlib::ShellOut.new(cmdStr)
   cmd.environment['HOME'] = ENV.fetch('HOME', '/root')
   cmd.run_command
